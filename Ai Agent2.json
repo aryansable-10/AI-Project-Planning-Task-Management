@@ -1,0 +1,459 @@
+{
+  "name": "Ai Agent2",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "90cff835-9ce9-4eb5-a4ca-b0f599830bf2",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1ZLlxrV7nrtk-QTgnXQZABb_fqFpbISzUcoPwE3k0ON4",
+          "mode": "list",
+          "cachedResultName": "Copy of Aryan_AI task tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZLlxrV7nrtk-QTgnXQZABb_fqFpbISzUcoPwE3k0ON4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1191686306,
+          "mode": "list",
+          "cachedResultName": "Task Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZLlxrV7nrtk-QTgnXQZABb_fqFpbISzUcoPwE3k0ON4/edit#gid=1191686306"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "2d87bb50-e831-4c3e-93ed-e7106f0867a4",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CV244XcWizvVvqgP",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7175de2d-245b-4101-a356-1bfdf786f361",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "Compeleted",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "a1a42139-f31c-4089-acd8-1eb65c52e6f5",
+              "leftValue": "={{ $json.end_date }}",
+              "rightValue": "={{ $('Schedule Trigger').item.json.timestamp }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "beforeOrEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "991b0660-3b85-4505-bf35-7002725f9fb8",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1ZLlxrV7nrtk-QTgnXQZABb_fqFpbISzUcoPwE3k0ON4",
+          "mode": "list",
+          "cachedResultName": "Copy of Aryan_AI task tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZLlxrV7nrtk-QTgnXQZABb_fqFpbISzUcoPwE3k0ON4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 96729737,
+          "mode": "list",
+          "cachedResultName": "Team Members",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZLlxrV7nrtk-QTgnXQZABb_fqFpbISzUcoPwE3k0ON4/edit#gid=96729737"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Employee_Name",
+              "lookupValue": "={{ $json.assigned_to }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        0
+      ],
+      "id": "8a1958d0-f6c2-4a21-8501-71d1a908af3b",
+      "name": "Get row(s) in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CV244XcWizvVvqgP",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Task Reminder Agent. You write a short, professional reminder email to an employee about a task they have not yet completed. Your tone is polite, supportive, and clear — a helpful nudge, never a reprimand.\n\n## INPUTS\nYou receive one task that is due today or overdue:\n- ASSIGNEE_NAME: {{ $('Get row(s) in sheet').item.json.assigned_to }}\n- TASK_NAME: {{ $('Get row(s) in sheet').item.json.task_name }}\n- PROJECT_ID: {{ $('Get row(s) in sheet').item.json.project_id }}\n- DUE_DATE: {{ $('Get row(s) in sheet').item.json.end_date }}\n- CURRENT_DATE: {{ $today.toISODate() }}\n\n## YOUR TASK\nWrite a reminder email to ASSIGNEE_NAME about TASK_NAME.\n\nDetermine the situation by comparing DUE_DATE to CURRENT_DATE:\n- If DUE_DATE equals CURRENT_DATE: the task is due today. Frame it as a friendly heads-up.\n- If DUE_DATE is before CURRENT_DATE: the task is overdue. Mention by how many days, but stay courteous and solution-focused.\n\nThe email should:\n- Open by addressing the person by their first name.\n- State clearly which task this is about and its due date.\n- Briefly remind them what the task involves (one line, from TASK_DESCRIPTION).\n- Reference the suggested next step (NEXT_ACTION) to make it easy to act.\n- If PRIORITY is \"High\" or \"Critical\", or RISK_LEVEL is \"High\", gently convey that this one is time-sensitive — without pressure or blame.\n- Invite them to reply with a status update or to flag any blockers.\n- Close warmly and professionally.\n\n## RULES\n- Keep the body under 130 words. Be concise and respectful of their time.\n- Do not guilt-trip, scold, or use accusatory language (\"you failed to...\", \"you were supposed to...\"). Assume good intent.\n- Do not invent facts, deadlines, or details not present in the inputs.\n- Use plain, natural language. No markdown, no bullet points in the email body.\n- Sign off as \"The Project Team\" (no fake individual name).\n- Return only the structured object defined by the output schema — no commentary.\n\nOutput :\nStructured json\n{\nsubject :\nbody :\n}\n",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        832,
+        0
+      ],
+      "id": "ccc4a411-6743-4eac-ba0c-280530ea0599",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        688,
+        208
+      ],
+      "id": "2598ac2f-5ef6-4bd3-afca-d64b4636ef88",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "rV4DByofJRh9J4tG",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\"subject\": \"Reminder: \\\"Draft farmer survey questionnaire\\\" is due today\",\"body\": \"Hi Yash,\\n\\nThis is a quick reminder about your task \\\"Draft farmer survey questionnaire\\\" for project KIS-001, which is due today (2026-06-20). It covers writing the 12-15 question survey on scheme awareness and access barriers.\\n\\nA good next step is to outline the survey sections and key questions. Since this one is marked high priority, it would help to keep it moving today.\\n\\nIf you've already made progress or are running into any blockers, just reply and let us know — happy to help.\\n\\nThanks,\\nThe Project Team\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        992,
+        176
+      ],
+      "id": "578f7afd-7371-44cf-853e-fa7809ceb482",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get row(s) in sheet1').item.json.Email }}",
+        "subject": "={{ $json.output.subject }}",
+        "message": "={{ $json.output.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "b8c79bb8-6f01-4b5e-b7aa-54a513abae2b",
+      "name": "Send a message",
+      "webhookId": "87c82b0b-c87a-4b38-a855-7bf4ee4efea9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "P93LtIJEWv5PW30X",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ZLlxrV7nrtk-QTgnXQZABb_fqFpbISzUcoPwE3k0ON4",
+          "mode": "list",
+          "cachedResultName": "Copy of Aryan_AI task tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZLlxrV7nrtk-QTgnXQZABb_fqFpbISzUcoPwE3k0ON4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 330981571,
+          "mode": "list",
+          "cachedResultName": "Notification",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZLlxrV7nrtk-QTgnXQZABb_fqFpbISzUcoPwE3k0ON4/edit#gid=330981571"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "recipient": "={{ $('Get row(s) in sheet1').item.json.Employee_Name }}",
+            "task_id": "={{ $('Get row(s) in sheet').item.json.task_id }}",
+            "project_id": "={{ $('Get row(s) in sheet').item.json.project_id }}",
+            "notification_id": "={{ $json.id }}",
+            "message": "={{ $('AI Agent').item.json.output.body }}",
+            "notification_type": "={{ $('Get row(s) in sheet1').item.json.Email }}",
+            "sent_at": "={{ $('Schedule Trigger').item.json.timestamp }}",
+            "created_at": "={{ $('Schedule Trigger').item.json.timestamp }}",
+            "status": "Email Sent"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "notification_id",
+              "displayName": "notification_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "task_id",
+              "displayName": "task_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "project_id",
+              "displayName": "project_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "recipient",
+              "displayName": "recipient",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notification_type",
+              "displayName": "notification_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sent_at",
+              "displayName": "sent_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1392,
+        0
+      ],
+      "id": "0cef9237-5338-4f8e-a1ec-9b1bf0ea6492",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CV244XcWizvVvqgP",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4bc223ff-0fc2-43d6-bdd7-6c49ae104749",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f887bef9e81fe1aecb81f2c907fc6f7535913140544948e4d658f4b17ae30cc9"
+  },
+  "nodeGroups": [],
+  "id": "h3N0O8rfh9MXRHAh",
+  "tags": []
+}
